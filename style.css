@@ -1655,8 +1655,15 @@ textarea.form-input {
   /* Hamburger and Navigation Drawer */
   .hamburger {
     display: flex;
-    padding: 10px; /* Make tap target larger */
-    margin: -10px; /* Offset margins to align properly */
+    width: 44px;
+    height: 44px;
+    padding: 13px 10px;
+    margin: -13px -10px; /* Offset margins to align properly without shrinking */
+  }
+
+  .hamburger span {
+    display: block;
+    background-color: var(--color-primary);
   }
 
   .nav-menu {
