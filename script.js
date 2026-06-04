@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.addEventListener('scroll', handleScroll);
-  handleScroll(); // Trigger initial check
+  handleScroll(); // Trigger initial scroll check
 
   // ==========================================
   // 2. MOBILE MENU HAMBURGER TOGGLE
@@ -60,345 +60,514 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 3. SCROLL REVEAL ANIMATIONS (IntersectionObserver)
+  // 3. GSAP SPLITTEXT REVEAL ANIMATION (Hero Title)
+  // ==========================================
+  const animatedTitle = document.getElementById('hero-animated-title');
+  
+  if (animatedTitle && typeof gsap !== 'undefined') {
+    // Custom SplitText into spans safely
+    const originalText = animatedTitle.textContent.trim();
+    animatedTitle.innerHTML = '';
+    
+    // Split into words, then characters
+    const words = originalText.split(/\s+/);
+    words.forEach((wordText, wIdx) => {
+      const wordSpan = document.createElement('span');
+      wordSpan.className = 'word-wrapper';
+      wordSpan.style.display = 'inline-block';
+      wordSpan.style.whiteSpace = 'nowrap';
+      
+      const characters = wordText.split('');
+      characters.forEach(char => {
+        const charSpan = document.createElement('span');
+        charSpan.className = 'split-char';
+        charSpan.textContent = char;
+        wordSpan.appendChild(charSpan);
+      });
+      
+      animatedTitle.appendChild(wordSpan);
+      if (wIdx < words.length - 1) {
+        animatedTitle.appendChild(document.createTextNode(' '));
+      }
+    });
+
+    // Animate letters using GSAP
+    gsap.fromTo('.split-char', 
+      { opacity: 0, y: 30 },
+      { 
+        opacity: 1, 
+        y: 0, 
+        duration: 0.6, 
+        ease: 'power3.out',
+        stagger: 0.03,
+        delay: 0.2
+      }
+    );
+  }
+
+  // ==========================================
+  // 4. INTERACTION REVEAL OBSERVER & STATS COUNTER
   // ==========================================
   const revealElements = document.querySelectorAll('.reveal');
+
+  const animateStatsNumbers = () => {
+    const counters = document.querySelectorAll('.stat-count');
+    counters.forEach(counter => {
+      const target = +counter.getAttribute('data-target');
+      const duration = 2000; // 2 seconds duration
+      const startTime = performance.now();
+
+      const updateCount = (currentTime) => {
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / duration, 1);
+        
+        // Easing: easeOutQuad
+        const easeProgress = progress * (2 - progress);
+        
+        const currentValue = Math.floor(easeProgress * target);
+        counter.textContent = currentValue;
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCount);
+        } else {
+          counter.textContent = target;
+        }
+      };
+
+      requestAnimationFrame(updateCount);
+    });
+  };
 
   if ('IntersectionObserver' in window) {
     const revealObserver = new IntersectionObserver((entries, observer) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('active');
-          observer.unobserve(entry.target); // Animate only once
+          
+          if (entry.target.id === 'stats') {
+            animateStatsNumbers();
+          }
+          
+          observer.unobserve(entry.target); // Animate once
         }
       });
     }, {
-      threshold: 0.15,
-      rootMargin: '0px 0px -50px 0px'
+      threshold: 0.1,
+      rootMargin: '0px 0px -40px 0px'
     });
 
     revealElements.forEach(el => revealObserver.observe(el));
   } else {
-    // Fallback if IntersectionObserver is not supported
     revealElements.forEach(el => el.classList.add('active'));
+    animateStatsNumbers();
   }
 
   // ==========================================
-  // 4. STATISTICS COUNTER ANIMATION
+  // 5. METHODOLOGY PORTAL SLIDER CONTROLLER
   // ==========================================
-  const statNumbers = document.querySelectorAll('.stat-number');
-  let countersAnimated = false;
+  const portalTrack = document.getElementById('portal-slides-track');
+  const portalSlides = document.querySelectorAll('.portal-slide');
+  const portalPrevBtn = document.getElementById('portal-prev-btn');
+  const portalNextBtn = document.getElementById('portal-next-btn');
+  const portalSlideNumber = document.getElementById('portal-slide-number');
+  const portalSlideTitleHeader = document.getElementById('portal-slide-title-header');
+  const portalDots = document.querySelectorAll('.portal-dot');
 
-  const animateCounters = () => {
-    statNumbers.forEach(stat => {
-      const target = parseInt(stat.getAttribute('data-target'), 10);
-      const isPercent = stat.parentElement.querySelector('.stat-label').textContent.includes('Rate');
-      const isPlus = !isPercent;
-      let count = 0;
-      const duration = 1500; // 1.5s animation
-      const speed = duration / target;
+  console.log("Portal slider initializing...");
+  console.log("Found portal track:", !!portalTrack);
+  console.log("Found slides count:", portalSlides.length);
+  console.log("Found next btn:", !!portalNextBtn);
+  console.log("Found prev btn:", !!portalPrevBtn);
+  console.log("Found dots count:", portalDots.length);
 
-      const updateCount = () => {
-        count++;
-        stat.textContent = count + (isPercent && count === target ? '%' : '') + (isPlus && count === target ? '+' : '');
-        if (count < target) {
-          setTimeout(updateCount, speed);
-        } else {
-          stat.textContent = target + (isPlus ? '+' : '') + (isPercent ? '%' : '');
-        }
-      };
+  const slideTitles = [
+    "Real-Life Core Focuses",
+    "Common Misconceptions",
+    "Grammar Methodology",
+    "Active Vocabulary",
+    "Confidence Focuses"
+  ];
 
-      updateCount();
-    });
-  };
+  if (portalSlides.length > 0 && portalTrack) {
+    let currentSlide = 0;
+    const totalSlides = portalSlides.length;
 
-  if ('IntersectionObserver' in window && statNumbers.length > 0) {
-    const statsSection = document.querySelector('.stats-section');
-    const statsObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !countersAnimated) {
-          animateCounters();
-          countersAnimated = true;
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.5 });
-
-    statsObserver.observe(statsSection);
-  } else if (statNumbers.length > 0) {
-    // Fallback
-    animateCounters();
-  }
-
-  // ==========================================
-  // 5. TESTIMONIALS SLIDER / CAROUSEL
-  // ==========================================
-  const track = document.getElementById('testimonials-track');
-  const slides = Array.from(document.querySelectorAll('.testimonial-slide'));
-  const prevBtn = document.getElementById('slider-prev');
-  const nextBtn = document.getElementById('slider-next');
-  const dotsContainer = document.getElementById('slider-dots');
-
-  if (track && slides.length > 0) {
-    let currentIndex = 0;
-    let autoSlideInterval;
-
-    // Create Navigation Dots
-    slides.forEach((_, index) => {
-      const dot = document.createElement('div');
-      dot.classList.add('slider-dot');
-      if (index === 0) dot.classList.add('active');
-      dot.setAttribute('aria-label', `Go to testimonial slide ${index + 1}`);
-      dot.addEventListener('click', () => {
-        goToSlide(index);
-        resetAutoSlide();
-      });
-      dotsContainer.appendChild(dot);
-    });
-
-    const dots = Array.from(document.querySelectorAll('.slider-dot'));
-
-    const updateSlider = () => {
-      track.style.transform = `translateX(-${currentIndex * 100}%)`;
-      dots.forEach((dot, index) => {
-        dot.classList.toggle('active', index === currentIndex);
-      });
-    };
-
-    const goToSlide = (index) => {
-      currentIndex = index;
-      updateSlider();
-    };
-
-    const nextSlide = () => {
-      currentIndex = (currentIndex + 1) % slides.length;
-      updateSlider();
-    };
-
-    const prevSlide = () => {
-      currentIndex = (currentIndex - 1 + slides.length) % slides.length;
-      updateSlider();
-    };
-
-    if (nextBtn) {
-      nextBtn.addEventListener('click', () => {
-        nextSlide();
-        resetAutoSlide();
-      });
-    }
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', () => {
-        prevSlide();
-        resetAutoSlide();
-      });
-    }
-
-    // Auto sliding every 6 seconds
-    const startAutoSlide = () => {
-      autoSlideInterval = setInterval(nextSlide, 6000);
-    };
-
-    const resetAutoSlide = () => {
-      clearInterval(autoSlideInterval);
-      startAutoSlide();
-    };
-
-    startAutoSlide();
-  }
-
-  // ==========================================
-  // 6. COURSES ACCORDION (Learn More Drawer)
-  // ==========================================
-  const courseDetailToggleButtons = document.querySelectorAll('.toggle-course-details');
-
-  courseDetailToggleButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const courseId = btn.getAttribute('data-course');
-      const drawer = document.getElementById(`drawer-${courseId}`);
+    const updatePortalSlider = (index) => {
+      console.log(`updatePortalSlider called with index: ${index}`);
       
-      if (drawer) {
-        const isOpen = drawer.classList.toggle('open');
-        btn.textContent = isOpen ? 'Show Less' : 'Learn More';
-        
-        // Accessibility updates
-        btn.setAttribute('aria-expanded', isOpen);
+      // Clamp index to slider bounds
+      currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
+      console.log(`Clamped slide index: ${currentSlide}`);
+
+      // Shift slide track horizontally
+      portalTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
+      console.log(`Track transform set to: translateX(-${currentSlide * 100}%)`);
+
+      // Update active states on slide elements
+      portalSlides.forEach((slide, idx) => {
+        const isActive = idx === currentSlide;
+        slide.classList.toggle('active', isActive);
+        // Force display layout to be relative/block if active
+        slide.style.opacity = isActive ? "1" : "0";
+        slide.style.pointerEvents = isActive ? "auto" : "none";
+      });
+
+      // Update pagination dots
+      portalDots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === currentSlide);
+      });
+
+      // Update header details (step counter and title)
+      if (portalSlideNumber) {
+        portalSlideNumber.textContent = `0${currentSlide + 1} / 0${totalSlides}`;
+      }
+      if (portalSlideTitleHeader) {
+        portalSlideTitleHeader.textContent = slideTitles[currentSlide] || "";
+      }
+
+      // Update arrow button disabled states
+      if (portalPrevBtn) {
+        portalPrevBtn.disabled = currentSlide === 0;
+      }
+      if (portalNextBtn) {
+        portalNextBtn.disabled = currentSlide === totalSlides - 1;
+      }
+      
+      // Adjust container height dynamically to fit active slide content
+      const activeSlide = portalSlides[currentSlide];
+      if (activeSlide && portalTrack.parentElement) {
+        portalTrack.parentElement.style.height = `${activeSlide.offsetHeight}px`;
+      }
+      
+      console.log(`Successfully transitioned to slide ${currentSlide + 1}`);
+    };
+
+    // Arrow navigation click handlers
+    if (portalPrevBtn) {
+      portalPrevBtn.addEventListener('click', (e) => {
+        console.log("Prev arrow clicked");
+        e.preventDefault();
+        updatePortalSlider(currentSlide - 1);
+      });
+    }
+
+    if (portalNextBtn) {
+      portalNextBtn.addEventListener('click', (e) => {
+        console.log("Next arrow clicked");
+        e.preventDefault();
+        updatePortalSlider(currentSlide + 1);
+      });
+    }
+
+    // Dot navigation click handlers
+    portalDots.forEach((dot, idx) => {
+      dot.addEventListener('click', (e) => {
+        console.log(`Pagination dot clicked: ${idx}`);
+        e.preventDefault();
+        updatePortalSlider(idx);
+      });
+    });
+
+    // Initialize first slide on page load
+    updatePortalSlider(0);
+
+    // Listen to resize and load events to maintain correct container height
+    window.addEventListener('resize', () => {
+      const activeSlide = portalSlides[currentSlide];
+      if (activeSlide && portalTrack.parentElement) {
+        portalTrack.parentElement.style.height = `${activeSlide.offsetHeight}px`;
+      }
+    });
+
+    window.addEventListener('load', () => {
+      const activeSlide = portalSlides[currentSlide];
+      if (activeSlide && portalTrack.parentElement) {
+        portalTrack.parentElement.style.height = `${activeSlide.offsetHeight}px`;
+      }
+    });
+  } else {
+    console.error("Methodology slider failed to initialize: track or slides missing.");
+  }
+
+  // ==========================================
+  // 6. MISCONCEPTIONS ACCORDION
+  // ==========================================
+  const accordionHeaders = document.querySelectorAll('.accordion-header');
+
+  accordionHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+      const item = header.parentElement;
+      const body = header.nextElementSibling;
+      const isActive = item.classList.contains('active');
+
+      // Close all accordions
+      document.querySelectorAll('.accordion-item').forEach(accItem => {
+        accItem.classList.remove('active');
+        accItem.querySelector('.accordion-body').style.maxHeight = null;
+      });
+
+      // Open clicked accordion if it wasn't active
+      if (!isActive) {
+        item.classList.add('active');
+        body.style.maxHeight = body.scrollHeight + 'px';
       }
     });
   });
 
+  // Trigger click on first accordion header to open it by default
+  if (accordionHeaders.length > 0) {
+    accordionHeaders[0].click();
+  }
+
   // ==========================================
-  // 7. COURSE CATEGORY FILTER
+  // 8. SPECIAL COURSES (Expanding Cards Interactivity)
   // ==========================================
-  const tabButtons = document.querySelectorAll('.tab-btn');
-  const courseCards = document.querySelectorAll('.course-card');
+  const expandingCards = document.querySelectorAll('.expanding-card');
 
-  tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const filter = button.getAttribute('data-filter');
+  expandingCards.forEach(card => {
+    const triggerCard = () => {
+      expandingCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    };
 
-      // Update active tab button styling
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      button.classList.add('active');
-
-      // Filter course cards
-      courseCards.forEach(card => {
-        const category = card.getAttribute('data-category');
-        if (filter === 'all' || category === filter || (filter === 'adults' && category === 'adults') || (filter === 'students' && category === 'students') || (filter === 'beginners' && category === 'beginners')) {
-          card.style.display = 'flex';
-          // Re-trigger scroll reveal transitions for items changing visibility
-          card.classList.add('active');
-        } else {
-          card.style.display = 'none';
-        }
-      });
-    });
+    card.addEventListener('mouseenter', triggerCard);
+    card.addEventListener('click', triggerCard);
+    card.addEventListener('focus', triggerCard);
   });
 
   // ==========================================
-  // 8. MODAL WINDOW CONTROLLERS
+  // 9. TRAINING PATH (3D Content Card Carousel)
+  // ==========================================
+  const stepCards = document.querySelectorAll('.path-step-card');
+  const prevBtn = document.getElementById('path-prev-btn');
+  const nextBtn = document.getElementById('path-next-btn');
+  const paginationDots = document.querySelectorAll('.path-dot');
+  
+  if (stepCards.length > 0) {
+    let currentStep = 0;
+    const totalSteps = stepCards.length;
+
+    const updatePath = (stepIndex) => {
+      currentStep = stepIndex;
+
+      // Update 3D card classes (active, left, right)
+      stepCards.forEach((card, idx) => {
+        card.classList.remove('active', 'left', 'right');
+        
+        // Compute relative pos circular-style like in feature-carousel.tsx
+        const offset = idx - currentStep;
+        let pos = (offset + totalSteps) % totalSteps;
+        if (pos > Math.floor(totalSteps / 2)) {
+          pos = pos - totalSteps;
+        }
+
+        if (pos === 0) {
+          card.classList.add('active');
+        } else if (pos === -1) {
+          card.classList.add('left');
+        } else if (pos === 1) {
+          card.classList.add('right');
+        }
+      });
+
+      // Update pagination dots active state
+      paginationDots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === currentStep);
+      });
+
+      // Update navigation button states
+      if (prevBtn) prevBtn.disabled = currentStep === 0;
+      if (nextBtn) nextBtn.disabled = currentStep === totalSteps - 1;
+    };
+
+    // Attach click listeners to dots
+    paginationDots.forEach(dot => {
+      dot.addEventListener('click', () => {
+        const step = parseInt(dot.getAttribute('data-step'), 10);
+        updatePath(step);
+      });
+    });
+
+    // Next button click listener
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentStep < totalSteps - 1) {
+          updatePath(currentStep + 1);
+        }
+      });
+    }
+
+    // Prev button click listener
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentStep > 0) {
+          updatePath(currentStep - 1);
+        }
+      });
+    }
+
+    // Initialize carousel path progress
+    updatePath(0);
+  }
+
+  // ==========================================
+  // 10. MODAL DIALOG CONTROLLERS (Book Assessment)
   // ==========================================
   const applyModal = document.getElementById('apply-modal');
   const successModal = document.getElementById('success-modal');
-  const openApplyButtons = document.querySelectorAll('.open-apply-modal');
-  const closeApplyBtn = document.getElementById('close-apply-modal');
+  const openModalBtns = document.querySelectorAll('.open-apply-modal');
+  const closeModalBtn = document.getElementById('close-apply-modal');
   const closeSuccessBtn = document.getElementById('close-success-modal');
   const successOkBtn = document.getElementById('btn-success-ok');
-
-  const openModal = (modal) => {
-    modal.classList.add('open');
-    document.body.style.overflow = 'hidden'; // Lock background scroll
-  };
-
-  const closeModal = (modal) => {
-    modal.classList.remove('open');
-    document.body.style.overflow = ''; // Unlock background scroll
-  };
-
-  openApplyButtons.forEach(btn => {
-    btn.addEventListener('click', () => openModal(applyModal));
-  });
-
-  if (closeApplyBtn) {
-    closeApplyBtn.addEventListener('click', () => closeModal(applyModal));
-  }
-
-  if (closeSuccessBtn) {
-    closeSuccessBtn.addEventListener('click', () => closeModal(successModal));
-  }
-
-  if (successOkBtn) {
-    successOkBtn.addEventListener('click', () => closeModal(successModal));
-  }
-
-  // Close modals when clicking outside
-  window.addEventListener('click', (e) => {
-    if (e.target === applyModal) closeModal(applyModal);
-    if (e.target === successModal) closeModal(successModal);
-  });
-
-  // Close modals on Escape key press
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (applyModal && applyModal.classList.contains('open')) closeModal(applyModal);
-      if (successModal && successModal.classList.contains('open')) closeModal(successModal);
-    }
-  });
-
-  // ==========================================
-  // 9. FORM SUBMISSIONS WITH VALIDATION
-  // ==========================================
-  const demoForm = document.getElementById('demo-form');
   const applyForm = document.getElementById('apply-form');
-  const successMessage = document.getElementById('success-message');
 
-  const validateInput = (input) => {
-    if (!input.value.trim()) {
-      input.style.borderColor = 'var(--color-error)';
-      return false;
-    }
-    
-    // Specific validations
-    if (input.type === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(input.value)) {
-        input.style.borderColor = 'var(--color-error)';
-        return false;
-      }
-    }
-    
-    if (input.type === 'tel') {
-      const phoneRegex = /^[6-9]\d{9}$/; // 10 digit Indian numbers starting with 6-9
-      if (!phoneRegex.test(input.value)) {
-        input.style.borderColor = 'var(--color-error)';
-        return false;
-      }
-    }
-
-    input.style.borderColor = 'var(--color-border)';
-    return true;
-  };
-
-  const handleFormSubmit = (form, successTxt) => {
-    const inputs = Array.from(form.querySelectorAll('input, select'));
-    let isValid = true;
-
-    inputs.forEach(input => {
-      if (input.required) {
-        const isInputValid = validateInput(input);
-        if (!isInputValid) isValid = false;
-        
-        // Remove error border on focus
-        input.addEventListener('input', () => {
-          input.style.borderColor = 'var(--color-border)';
-        });
-      }
+  // Open Apply Modal
+  openModalBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyModal.classList.add('open');
+      document.body.style.overflow = 'hidden'; // Lock background scroll
     });
+  });
 
-    if (isValid) {
-      // Simulate form submission process
-      const submitBtn = form.querySelector('button[type="submit"]');
-      const originalText = submitBtn.innerHTML;
-      submitBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Submitting...';
-      submitBtn.disabled = true;
-
-      setTimeout(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        
-        // If it was the apply modal, close it first
-        if (form === applyForm) {
-          closeModal(applyModal);
-        }
-        
-        // Set success modal message and open it
-        if (successMessage) {
-          successMessage.textContent = successTxt;
-        }
-        openModal(successModal);
-        
-        form.reset(); // Reset fields
-      }, 1200); // 1.2s fake submission delay
-    }
+  // Close Apply Modal
+  const closeApply = () => {
+    applyModal.classList.remove('open');
+    document.body.style.overflow = '';
   };
-
-  if (demoForm) {
-    demoForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      handleFormSubmit(
-        demoForm, 
-        'Your demo class has been booked successfully! Our study coach will phone you shortly to schedule your preferred date and time.'
-      );
-    });
+  
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', closeApply);
   }
 
+  // Close modal clicking overlay
+  window.addEventListener('click', (e) => {
+    if (e.target === applyModal) {
+      closeApply();
+    }
+    if (e.target === successModal) {
+      successModal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // Handle Form Submission
   if (applyForm) {
     applyForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      handleFormSubmit(
-        applyForm,
-        'Your admission application has been registered successfully! An admissions counselor will call you within 24 hours to clarify course fee options and batch allocations.'
-      );
+
+      const nameInput = document.getElementById('apply-name');
+      const phoneInput = document.getElementById('apply-phone');
+      const emailInput = document.getElementById('apply-email');
+      const occupationSelect = document.getElementById('apply-occupation');
+      const courseSelect = document.getElementById('apply-course');
+
+      // Validation
+      let isValid = true;
+      const inputs = [nameInput, phoneInput, emailInput, occupationSelect, courseSelect];
+
+      inputs.forEach(input => {
+        if (!input.value || input.value.trim() === '') {
+          input.classList.add('error');
+          isValid = false;
+        } else {
+          input.classList.remove('error');
+        }
+      });
+
+      // Special phone validation (10 digits)
+      if (phoneInput.value && !/^\d{10}$/.test(phoneInput.value.replace(/[^0-9]/g, ''))) {
+        phoneInput.classList.add('error');
+        isValid = false;
+      }
+
+      if (isValid) {
+        // Close registration modal
+        closeApply();
+        
+        // Open success modal
+        successModal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+
+        // Reset form
+        applyForm.reset();
+      }
     });
+
+    // Remove error border on input inputting
+    applyForm.querySelectorAll('.form-input').forEach(input => {
+      input.addEventListener('input', () => {
+        input.classList.remove('error');
+      });
+      input.addEventListener('change', () => {
+        input.classList.remove('error');
+      });
+    });
+  }
+
+  // Close success modal button
+  const closeSuccess = () => {
+    successModal.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  if (closeSuccessBtn) {
+    closeSuccessBtn.addEventListener('click', closeSuccess);
+  }
+
+  if (successOkBtn) {
+    successOkBtn.addEventListener('click', closeSuccess);
+  }
+
+  // ==========================================
+  // 11. SPOTLIGHT CARDS MOUSE TRACKER
+  // ==========================================
+  const spotlightCards = document.querySelectorAll('.spotlight-card');
+  spotlightCards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--mouse-x', `${x}px`);
+      card.style.setProperty('--mouse-y', `${y}px`);
+    });
+  });
+
+  // ==========================================
+  // 12. METHODOLOGY MORPHING LEARNER LOOP (Tab 1)
+  // ==========================================
+  const bgs = document.querySelectorAll('.morphing-learner-animation .stage-bg');
+  const props = document.querySelectorAll('.morphing-learner-animation .character-svg g');
+  const captionTitle = document.querySelector('.morphing-learner-animation .active-caption-title');
+  const captionText = document.querySelector('.morphing-learner-animation .active-caption-text');
+
+  const scenarios = [
+    { title: "Academic Studies", text: "A student needs English for studies, textbooks, and reading comprehension.", bgClass: "student-bg", propClass: "prop-student" },
+    { title: "Job Interviews", text: "A job seeker needs English to present skills and clear competitive interviews.", bgClass: "jobseeker-bg", propClass: "prop-jobseeker" },
+    { title: "Workplace Communication", text: "An employee needs English for daily reporting, emails, and office coordination.", bgClass: "employee-bg", propClass: "prop-employee" },
+    { title: "Social Confidence", text: "A homemaker needs English for parent-teacher meetings and social circle interactions.", bgClass: "homemaker-bg", propClass: "prop-homemaker" },
+    { title: "Customer & Growth", text: "A business owner needs English to negotiate with customers and grow operations.", bgClass: "business-bg", propClass: "prop-business" },
+    { title: "Boardroom Presentations", text: "A professional needs English for client presentations, reports, and leadership success.", bgClass: "professional-bg", propClass: "prop-professional" }
+  ];
+
+  if (bgs.length > 0 && props.length > 0) {
+    let currentScenario = 0;
+    setInterval(() => {
+      currentScenario = (currentScenario + 1) % scenarios.length;
+      
+      // Update background active classes
+      bgs.forEach((bg, idx) => {
+        bg.classList.toggle('active', idx === currentScenario);
+      });
+
+      // Update active prop classes in SVG
+      props.forEach(prop => {
+        const isCurrent = prop.classList.contains(scenarios[currentScenario].propClass);
+        prop.classList.toggle('active-prop', isCurrent);
+      });
+
+      // Update text bubble descriptions
+      if (captionTitle) captionTitle.textContent = scenarios[currentScenario].title;
+      if (captionText) captionText.textContent = scenarios[currentScenario].text;
+    }, 3000);
   }
 });
